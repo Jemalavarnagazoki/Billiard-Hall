@@ -188,10 +188,5 @@ export const siteContent = {
     { value: 'billiard', label: 'ბილიარდი' },
     { value: 'playstation', label: 'PlayStation' },
     { value: 'events', label: 'ივენთები' }
-  ],
-  visitTimes: [
-    { value: 'afternoon', label: 'დღის საათები' },
-    { value: 'evening', label: 'საღამო' },
-    { value: 'late-night', label: 'გვიანი დრო' }
   ]
 };

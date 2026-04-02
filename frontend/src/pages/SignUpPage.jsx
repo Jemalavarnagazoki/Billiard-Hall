@@ -7,8 +7,7 @@ const initialForm = {
   fullName: '',
   email: '',
   phone: '',
-  plan: 'billiard',
-  visitTime: 'evening'
+  plan: 'billiard'
 };
 
 export default function SignUpPage() {
@@ -87,25 +86,14 @@ export default function SignUpPage() {
               />
             </label>
 
-            <div className="form-row">
-              <CustomSelect
-                label="სერვისი"
-                name="plan"
-                onChange={handleSelectChange}
-                options={siteContent.signupPlans}
-                placeholder="აირჩიე სერვისი"
-                value={formData.plan}
-              />
-
-              <CustomSelect
-                label="სასურველი დრო"
-                name="visitTime"
-                onChange={handleSelectChange}
-                options={siteContent.visitTimes}
-                placeholder="აირჩიე დრო"
-                value={formData.visitTime}
-              />
-            </div>
+            <CustomSelect
+              label="სერვისი"
+              name="plan"
+              onChange={handleSelectChange}
+              options={siteContent.signupPlans}
+              placeholder="აირჩიე სერვისი"
+              value={formData.plan}
+            />
 
             <button className="button button-primary button-submit button-large" disabled={isSubmitting} type="submit">
               {isSubmitting ? 'იგზავნება...' : 'რეგისტრაციის გაგზავნა'}

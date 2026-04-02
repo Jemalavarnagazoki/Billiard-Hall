@@ -136,7 +136,6 @@ function validateSignup(payload) {
   const email = sanitize(payload.email);
   const phone = sanitize(payload.phone);
   const plan = normalizeChoice(payload.plan);
-  const visitTime = normalizeChoice(payload.visitTime);
 
   if (!fullName || fullName.length < 2) {
     return buildMessage('Please enter a valid full name.');
@@ -154,16 +153,11 @@ function validateSignup(payload) {
     return buildMessage('Selected service is not valid.');
   }
 
-  if (!isValidChoice(visitTime, ['afternoon', 'evening', 'late-night'])) {
-    return buildMessage('Selected visit time is not valid.');
-  }
-
   return {
     fullName,
     email,
     phone,
-    plan,
-    visitTime
+    plan
   };
 }
 
