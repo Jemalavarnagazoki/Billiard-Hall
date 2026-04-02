@@ -14,7 +14,7 @@ export default function HomePage() {
         eyebrow={siteContent.hero.eyebrow}
         image={hallImage}
         primaryAction={{ to: '/reserve', label: 'დაჯავშნე მაგიდა' }}
-        secondaryAction={{ to: '/prices', label: 'ნახე ფასები' }}
+        secondaryAction={{ to: '/prices', label: 'ნახე მენიუ' }}
         title={siteContent.hero.title}
       >
         <div className="home-hero-panel">
