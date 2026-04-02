@@ -15,7 +15,8 @@ export default function Footer() {
           <p className="eyebrow">სწრაფი ბმულები</p>
           <div className="footer-links">
             <Link to="/reserve">ჯავშანი</Link>
-            <Link to="/prices">მენიუ</Link>
+            <Link to="/prices">ფასები</Link>
+            <Link to="/menu">მენიუ</Link>
             <Link to="/contact">კონტაქტი</Link>
             <Link to="/signup">რეგისტრაცია</Link>
           </div>

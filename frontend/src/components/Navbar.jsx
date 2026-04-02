@@ -4,7 +4,8 @@ import { siteContent } from '../data/siteContent';
 
 const navItems = [
   { to: '/', label: 'მთავარი' },
-  { to: '/prices', label: 'მენიუ' },
+  { to: '/prices', label: 'ფასები' },
+  { to: '/menu', label: 'მენიუ' },
   { to: '/reserve', label: 'ჯავშანი' },
   { to: '/contact', label: 'კონტაქტი' },
   { to: '/signup', label: 'რეგისტრაცია' }
