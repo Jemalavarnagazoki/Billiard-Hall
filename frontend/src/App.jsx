@@ -6,6 +6,7 @@ import AdminPage from './pages/AdminPage';
 import MenuPage from './pages/MenuPage';
 import PricesPage from './pages/PricesPage';
 import ReservePage from './pages/ReservePage';
+import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/prices" element={<PricesPage />} />
         <Route path="/reserve" element={<ReservePage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/signin" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

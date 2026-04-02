@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -11,6 +11,7 @@ const dataDirectory = path.join(__dirname, '..', 'data');
 const reservationDataFile = path.join(dataDirectory, 'reservations.json');
 const signupDataFile = path.join(dataDirectory, 'signups.json');
 const adminSessionDataFile = path.join(dataDirectory, 'admin-sessions.json');
+const userSessionDataFile = path.join(dataDirectory, 'user-sessions.json');
 const app = express();
 const port = process.env.PORT || 4000;
 const totalTables = 13;
@@ -139,6 +140,26 @@ function normalizePaymentStatus(value) {
   return normalizeChoice(value) === 'paid' ? 'paid' : 'unpaid';
 }
 
+function createSalt() {
+  return randomBytes(16).toString('hex');
+}
+
+function hashPassword(password, salt) {
+  return scryptSync(password, salt, 64).toString('hex');
+}
+
+function verifyPassword(password, salt, expectedHash) {
+  const nextHash = hashPassword(password, salt);
+  const leftBuffer = Buffer.from(nextHash, 'hex');
+  const rightBuffer = Buffer.from(expectedHash, 'hex');
+
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(leftBuffer, rightBuffer);
+}
+
 function normalizeReservationRecord(record) {
   const reservationType = normalizeChoice(record.reservationType || 'billiard');
   const durationHours = Number.isInteger(Number(record.durationHours))
@@ -168,6 +189,19 @@ function normalizeReservationRecord(record) {
   };
 }
 
+function normalizeSignupRecord(record) {
+  return {
+    id: record.id || randomUUID(),
+    fullName: sanitize(record.fullName),
+    email: normalizeEmail(record.email),
+    phone: sanitize(record.phone),
+    plan: normalizeChoice(record.plan || 'billiard'),
+    passwordHash: sanitize(record.passwordHash),
+    passwordSalt: sanitize(record.passwordSalt),
+    createdAt: sanitize(record.createdAt) || new Date().toISOString()
+  };
+}
+
 async function getReservations() {
   const records = await readCollection(reservationDataFile);
   return records.map(normalizeReservationRecord);
@@ -178,11 +212,12 @@ async function saveReservations(reservations) {
 }
 
 async function getSignups() {
-  return readCollection(signupDataFile);
+  const records = await readCollection(signupDataFile);
+  return records.map(normalizeSignupRecord);
 }
 
 async function saveSignups(signups) {
-  await writeCollection(signupDataFile, signups);
+  await writeCollection(signupDataFile, signups.map(normalizeSignupRecord));
 }
 
 async function getAdminSessions() {
@@ -191,6 +226,14 @@ async function getAdminSessions() {
 
 async function saveAdminSessions(sessions) {
   await writeCollection(adminSessionDataFile, sessions);
+}
+
+async function getUserSessions() {
+  return readCollection(userSessionDataFile);
+}
+
+async function saveUserSessions(sessions) {
+  await writeCollection(userSessionDataFile, sessions);
 }
 
 function safeCompare(left, right) {
@@ -208,22 +251,26 @@ function findAdminByEmail(email) {
   return adminUsers.find((item) => item.email === normalizeEmail(email));
 }
 
-function createAdminToken() {
+function findSignupByEmail(signups, email) {
+  return signups.find((item) => item.email === normalizeEmail(email));
+}
+
+function createSessionToken() {
   return `${randomUUID()}-${randomBytes(16).toString('hex')}`;
 }
 
-function getAdminTokenFromRequest(request) {
+function getBearerToken(request) {
   const header = sanitize(request.headers.authorization);
 
   if (header.toLowerCase().startsWith('bearer ')) {
     return header.slice(7).trim();
   }
 
-  return sanitize(request.headers['x-admin-token']);
+  return '';
 }
 
 async function requireAdmin(request, response) {
-  const token = getAdminTokenFromRequest(request);
+  const token = getBearerToken(request);
 
   if (!token) {
     response.status(401).json({
@@ -258,11 +305,49 @@ async function requireAdmin(request, response) {
   };
 }
 
-function validateSignup(payload) {
+async function requireUser(request, response) {
+  const token = getBearerToken(request);
+
+  if (!token) {
+    response.status(401).json({
+      message: 'User authorization is required.'
+    });
+    return null;
+  }
+
+  const sessions = await getUserSessions();
+  const session = sessions.find((item) => item.token === token);
+
+  if (!session) {
+    response.status(401).json({
+      message: 'User session is not valid.'
+    });
+    return null;
+  }
+
+  const signups = await getSignups();
+  const user = findSignupByEmail(signups, session.email);
+
+  if (!user) {
+    response.status(401).json({
+      message: 'User account was not found.'
+    });
+    return null;
+  }
+
+  return {
+    user,
+    session,
+    sessions
+  };
+}
+
+function validateSignup(payload, existingSignups) {
   const fullName = sanitize(payload.fullName);
-  const email = sanitize(payload.email);
+  const email = normalizeEmail(payload.email);
   const phone = sanitize(payload.phone);
   const plan = normalizeChoice(payload.plan);
+  const password = sanitize(payload.password);
 
   if (!fullName || fullName.length < 2) {
     return buildMessage('Please enter a valid full name.');
@@ -280,11 +365,20 @@ function validateSignup(payload) {
     return buildMessage('Selected service is not valid.');
   }
 
+  if (password.length < 6) {
+    return buildMessage('Password must be at least 6 characters long.');
+  }
+
+  if (findSignupByEmail(existingSignups, email)) {
+    return buildMessage('An account with this email already exists.');
+  }
+
   return {
     fullName,
     email,
     phone,
-    plan
+    plan,
+    password
   };
 }
 
@@ -385,10 +479,84 @@ async function bootstrapStore() {
   await ensureDataFile(reservationDataFile);
   await ensureDataFile(signupDataFile);
   await ensureDataFile(adminSessionDataFile);
+  await ensureDataFile(userSessionDataFile);
 }
 
 app.get('/api/health', (_request, response) => {
   response.json({ ok: true });
+});
+
+app.post('/api/auth/login', async (request, response) => {
+  const email = normalizeEmail(request.body.email);
+  const password = sanitize(request.body.password);
+  const signups = await getSignups();
+  const user = findSignupByEmail(signups, email);
+
+  if (!user || !user.passwordHash || !user.passwordSalt || !verifyPassword(password, user.passwordSalt, user.passwordHash)) {
+    response.status(401).json({
+      message: 'Sign in details are not valid.'
+    });
+    return;
+  }
+
+  const sessions = await getUserSessions();
+  const token = createSessionToken();
+  const nextSessions = sessions.filter((item) => item.email !== user.email);
+
+  nextSessions.push({
+    id: randomUUID(),
+    email: user.email,
+    token,
+    createdAt: new Date().toISOString()
+  });
+
+  await saveUserSessions(nextSessions);
+
+  response.json({
+    token,
+    user: {
+      fullName: user.fullName,
+      email: user.email,
+      phone: user.phone,
+      plan: user.plan
+    }
+  });
+});
+
+app.post('/api/auth/logout', async (request, response) => {
+  const token = getBearerToken(request);
+
+  if (!token) {
+    response.status(204).end();
+    return;
+  }
+
+  const sessions = await getUserSessions();
+  const nextSessions = sessions.filter((item) => item.token !== token);
+  await saveUserSessions(nextSessions);
+  response.status(204).end();
+});
+
+app.get('/api/auth/reservations', async (request, response) => {
+  const userContext = await requireUser(request, response);
+
+  if (!userContext) {
+    return;
+  }
+
+  const reservations = sortReservations(await getReservations()).filter(
+    (item) => normalizeEmail(item.email) === userContext.user.email
+  );
+
+  response.json({
+    user: {
+      fullName: userContext.user.fullName,
+      email: userContext.user.email,
+      phone: userContext.user.phone,
+      plan: userContext.user.plan
+    },
+    reservations
+  });
 });
 
 app.post('/api/admin/login', async (request, response) => {
@@ -404,7 +572,7 @@ app.post('/api/admin/login', async (request, response) => {
   }
 
   const sessions = await getAdminSessions();
-  const token = createAdminToken();
+  const token = createSessionToken();
   const nextSessions = sessions.filter((item) => item.email !== admin.email);
 
   nextSessions.push({
@@ -426,7 +594,7 @@ app.post('/api/admin/login', async (request, response) => {
 });
 
 app.post('/api/admin/logout', async (request, response) => {
-  const token = getAdminTokenFromRequest(request);
+  const token = getBearerToken(request);
 
   if (!token) {
     response.status(204).end();
@@ -592,26 +760,39 @@ app.post('/api/reservations', async (request, response) => {
 });
 
 app.post('/api/signups', async (request, response) => {
-  const validated = validateSignup(request.body);
+  const signups = await getSignups();
+  const validated = validateSignup(request.body, signups);
 
   if (validated.message) {
     response.status(400).json(validated);
     return;
   }
 
-  const signups = await getSignups();
-  const record = {
+  const passwordSalt = createSalt();
+  const passwordHash = hashPassword(validated.password, passwordSalt);
+  const record = normalizeSignupRecord({
     id: randomUUID(),
-    ...validated,
+    fullName: validated.fullName,
+    email: validated.email,
+    phone: validated.phone,
+    plan: validated.plan,
+    passwordSalt,
+    passwordHash,
     createdAt: new Date().toISOString()
-  };
+  });
 
   signups.push(record);
   await saveSignups(signups);
 
   response.status(201).json({
     message: 'Signup saved.',
-    signup: record
+    signup: {
+      id: record.id,
+      fullName: record.fullName,
+      email: record.email,
+      phone: record.phone,
+      plan: record.plan
+    }
   });
 });
 

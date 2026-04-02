@@ -1,6 +1,8 @@
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 export const ADMIN_TOKEN_STORAGE_KEY = 'billiardHallAdminToken';
 export const ADMIN_EMAIL_STORAGE_KEY = 'billiardHallAdminEmail';
+export const USER_TOKEN_STORAGE_KEY = 'billiardHallUserToken';
+export const USER_EMAIL_STORAGE_KEY = 'billiardHallUserEmail';
 
 function buildApiUrl(path) {
   return `${apiBaseUrl}${path}`;
@@ -102,4 +104,35 @@ export async function updateReservationPaymentStatus({ reservationId, paymentSta
   });
 
   return parseResponse(response, 'გადახდის სტატუსის განახლება ვერ მოხერხდა.');
+}
+
+export async function createUserSession(payload) {
+  const response = await fetch(buildApiUrl('/api/auth/login'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  return parseResponse(response, 'შესვლა ვერ მოხერხდა.');
+}
+
+export async function destroyUserSession(token) {
+  await fetch(buildApiUrl('/api/auth/logout'), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+export async function fetchUserReservations(token) {
+  const response = await fetch(buildApiUrl('/api/auth/reservations'), {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return parseResponse(response, 'თქვენი ჯავშნების ჩატვირთვა ვერ მოხერხდა.');
 }

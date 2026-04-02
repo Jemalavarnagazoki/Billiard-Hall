@@ -4,3 +4,4 @@ dist
 backend/data/reservations.json
 backend/data/signups.json
 backend/data/admin-sessions.json
+backend/data/user-sessions.json

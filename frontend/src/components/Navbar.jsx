@@ -8,6 +8,7 @@ const navItems = [
   { to: '/menu', label: 'მენიუ' },
   { to: '/reserve', label: 'ჯავშანი' },
   { to: '/contact', label: 'კონტაქტი' },
+  { to: '/signin', label: 'შესვლა' },
   { to: '/signup', label: 'რეგისტრაცია' }
 ];
 

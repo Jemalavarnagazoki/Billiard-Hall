@@ -1122,6 +1122,15 @@ textarea {
   font-size: 1.2rem;
 }
 
+.auth-switch-copy {
+  margin: -4px 0 0;
+  color: var(--muted);
+}
+
+.auth-switch-copy a {
+  color: var(--text);
+}
+
 .footer-links {
   display: grid;
   gap: 10px;

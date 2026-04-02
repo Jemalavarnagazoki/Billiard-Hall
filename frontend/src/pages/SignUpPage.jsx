@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import CustomSelect from '../components/CustomSelect';
 import { siteContent } from '../data/siteContent';
@@ -7,7 +8,8 @@ const initialForm = {
   fullName: '',
   email: '',
   phone: '',
-  plan: 'billiard'
+  plan: 'billiard',
+  password: ''
 };
 
 export default function SignUpPage() {
@@ -31,7 +33,7 @@ export default function SignUpPage() {
 
     try {
       await createSignup(formData);
-      setMessage('რეგისტრაცია მიღებულია. მალე დაგიკავშირდებით.');
+      setMessage('ანგარიში შეიქმნა. ახლა შეგიძლია შეხვიდე.');
       setFormData(initialForm);
     } catch (error) {
       setMessage(error.message);
@@ -86,6 +88,18 @@ export default function SignUpPage() {
               />
             </label>
 
+            <label>
+              პაროლი
+              <input
+                name="password"
+                onChange={handleInputChange}
+                placeholder="მინიმუმ 6 სიმბოლო"
+                required
+                type="password"
+                value={formData.password}
+              />
+            </label>
+
             <CustomSelect
               label="სერვისი"
               name="plan"
@@ -98,6 +112,10 @@ export default function SignUpPage() {
             <button className="button button-primary button-submit button-large" disabled={isSubmitting} type="submit">
               {isSubmitting ? 'იგზავნება...' : 'რეგისტრაციის გაგზავნა'}
             </button>
+
+            <p className="auth-switch-copy">
+              უკვე გაქვს ანგარიში? <Link to="/signin">შესვლა</Link>
+            </p>
 
             <p className="form-message" role="status">
               {message}

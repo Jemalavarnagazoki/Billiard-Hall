@@ -18,6 +18,7 @@ export default function Footer() {
             <Link to="/prices">ფასები</Link>
             <Link to="/menu">მენიუ</Link>
             <Link to="/contact">კონტაქტი</Link>
+            <Link to="/signin">შესვლა</Link>
             <Link to="/signup">რეგისტრაცია</Link>
           </div>
         </div>
