@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import ContactPage from './pages/ContactPage';
 import HomePage from './pages/HomePage';
+import AdminPage from './pages/AdminPage';
 import MenuPage from './pages/MenuPage';
 import PricesPage from './pages/PricesPage';
 import ReservePage from './pages/ReservePage';
@@ -12,6 +13,7 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="/menu" element={<MenuPage />} />
         <Route path="/prices" element={<PricesPage />} />
         <Route path="/reserve" element={<ReservePage />} />
