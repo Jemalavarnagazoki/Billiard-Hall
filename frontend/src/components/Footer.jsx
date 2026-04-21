@@ -1,37 +1,35 @@
-import { Link } from 'react-router-dom';
-import { siteContent } from '../data/siteContent';
+import { useLocale } from '../context/LocaleContext';
+import { RouteLink } from './RouteLink';
 
 export default function Footer() {
+  const { content } = useLocale();
+
   return (
     <footer className="site-footer">
       <div className="container footer-grid">
         <div>
-          <p className="eyebrow">Billiard Hall</p>
-          <strong className="footer-title">{siteContent.address}</strong>
-          <p className="footer-copy">სამუშაო საათები: {siteContent.hours}</p>
+          <p className="eyebrow">{content.ui.footer.brandEyebrow}</p>
+          <strong className="footer-title">{content.address}</strong>
+          <p className="footer-copy">{content.ui.contact.hours}: {content.hours}</p>
         </div>
 
         <div>
-          <p className="eyebrow">სწრაფი ბმულები</p>
+          <p className="eyebrow">{content.ui.footer.quickLinks}</p>
           <div className="footer-links">
-            <Link to="/reserve">ჯავშანი</Link>
-            <Link to="/prices">ფასები</Link>
-            <Link to="/menu">მენიუ</Link>
-            <Link to="/contact">კონტაქტი</Link>
-            <Link to="/signin">შესვლა</Link>
-            <Link to="/signup">რეგისტრაცია</Link>
-          </div>
-        </div>
-
-        <div>
-          <p className="eyebrow">ტელეფონი</p>
-          <div className="footer-links">
-            {siteContent.phones.map((phone) => (
-              <a href={`tel:${phone}`} key={phone}>
-                {phone}
-              </a>
+            {content.ui.navItems.slice(1).map((item) => (
+              <RouteLink key={item.to} to={item.to}>
+                {item.label}
+              </RouteLink>
             ))}
           </div>
+        </div>
+
+        <div>
+          <p className="eyebrow">{content.ui.footer.reservationsTitle}</p>
+          <p className="footer-copy">{content.ui.footer.reservationsCopy}</p>
+          <RouteLink className="button button-primary" to="/reserve">
+            {content.ui.footer.reserveLink}
+          </RouteLink>
         </div>
       </div>
     </footer>

@@ -1,13 +1,20 @@
+import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
-import ContactPage from './pages/ContactPage';
 import HomePage from './pages/HomePage';
-import AdminPage from './pages/AdminPage';
-import MenuPage from './pages/MenuPage';
-import PricesPage from './pages/PricesPage';
-import ReservePage from './pages/ReservePage';
-import SignInPage from './pages/SignInPage';
-import SignUpPage from './pages/SignUpPage';
+import { trackRouteImport } from './lib/routeLoader';
+
+function lazyRoute(importer) {
+  return lazy(() => trackRouteImport(importer));
+}
+
+const AdminPage = lazyRoute(() => import('./pages/AdminPage'));
+const MenuPage = lazyRoute(() => import('./pages/MenuPage'));
+const PricesPage = lazyRoute(() => import('./pages/PricesPage'));
+const ReservePage = lazyRoute(() => import('./pages/ReservePage'));
+const ContactPage = lazyRoute(() => import('./pages/ContactPage'));
+const SignInPage = lazyRoute(() => import('./pages/SignInPage'));
+const SignUpPage = lazyRoute(() => import('./pages/SignUpPage'));
 
 export default function App() {
   return (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import CustomSelect from '../components/CustomSelect';
-import { siteContent } from '../data/siteContent';
+import { useLocale } from '../context/LocaleContext';
 import useVenueSummary from '../hooks/useVenueSummary';
 import { createReservation, fetchReservationAvailability } from '../lib/api';
 
@@ -19,20 +19,12 @@ const initialForm = {
   notes: ''
 };
 
-const tableOptions = Array.from({ length: 13 }, (_, index) => ({
-  value: String(index + 1),
-  label: `მაგიდა ${index + 1}`
-}));
-
 function getToday() {
   return new Date().toISOString().split('T')[0];
 }
 
-function getHourlyRate(type) {
-  return siteContent.pricingRules[type] || 0;
-}
-
 export default function ReservePage() {
+  const { content } = useLocale();
   const { summary } = useVenueSummary();
   const [formData, setFormData] = useState({
     ...initialForm,
@@ -43,8 +35,13 @@ export default function ReservePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
 
+  const tableOptions = Array.from({ length: 13 }, (_, index) => ({
+    value: String(index + 1),
+    label: `${content.ui.reserve.tableLabel} ${index + 1}`
+  }));
+
   const durationHours = Math.max(1, Number(formData.durationHours) || 1);
-  const hourlyRate = getHourlyRate(formData.reservationType);
+  const hourlyRate = content.pricingRules[formData.reservationType] || 0;
   const totalPrice = hourlyRate * durationHours;
 
   useEffect(() => {
@@ -146,9 +143,12 @@ export default function ReservePage() {
         ...formData,
         durationHours
       });
-      setMessage(
-        `${formData.reservationType === 'playstation' ? 'PlayStation' : 'ჯავშანი'} მიღებულია. გადასახდელი თანხა: ${result.reservation.totalPrice} ლარი.`
-      );
+
+      const serviceLabel =
+        content.reserveServices.find((service) => service.value === formData.reservationType)?.label ||
+        formData.reservationType;
+
+      setMessage(`${serviceLabel}. ${content.ui.reserve.totalEyebrow}: ${result.reservation.totalPrice} ${content.ui.common.currency}.`);
       setFormData({
         ...initialForm,
         reservationDate: getToday()
@@ -166,44 +166,43 @@ export default function ReservePage() {
       <section className="section reserve-page-section">
         <div className="container reserve-layout">
           <aside className="reserve-side-panel">
-            <p className="eyebrow">Reserve</p>
-            <h1>ჯავშანი</h1>
-            <p className="reserve-side-copy">თუ მეტი დრო გინდა, მიუთითე საათები და თანხაც ავტომატურად გაიზრდება.</p>
+            <p className="eyebrow">{content.ui.reserve.eyebrow}</p>
+            <h1>{content.ui.reserve.title}</h1>
+            <p className="reserve-side-copy">{content.ui.reserve.description}</p>
 
             <div className="reserve-side-stats">
               <article>
-                <span>დღეს თავისუფალია</span>
+                <span>{content.ui.home.availableToday}</span>
                 <strong>{summary.remainingTables}</strong>
               </article>
               <article>
-                <span>საათობრივი ფასი</span>
-                <strong>{hourlyRate} ლარი</strong>
+                <span>{content.ui.reserve.hourlyRate}</span>
+                <strong>{hourlyRate} {content.ui.common.currency}</strong>
               </article>
             </div>
 
             <div className="reserve-side-cards">
-              {siteContent.phones.map((phone) => (
-                <a className="contact-card" href={`tel:${phone}`} key={phone}>
-                  <span>დარეკე</span>
-                  <strong>{phone}</strong>
-                </a>
-              ))}
+              <div className="location-card">
+                <p className="feature-eyebrow">{content.ui.reserve.visitEyebrow}</p>
+                <strong>{content.address}</strong>
+                <p>{content.hours}</p>
+              </div>
             </div>
 
             <div className="location-card">
-              <p className="feature-eyebrow">სულ თანხა</p>
-              <strong>{totalPrice} ლარი</strong>
-              <p>{durationHours} საათი x {hourlyRate} ლარი</p>
+              <p className="feature-eyebrow">{content.ui.reserve.totalEyebrow}</p>
+              <strong>{totalPrice} {content.ui.common.currency}</strong>
+              <p>{durationHours} {content.ui.reserve.durationUnit} x {hourlyRate} {content.ui.common.currency}</p>
             </div>
           </aside>
 
           <form className="reservation-form reserve-form-large" onSubmit={handleSubmit}>
             <div className="form-head">
-              <h2>აირჩიე დრო და ხანგრძლივობა</h2>
+              <h2>{content.ui.reserve.formTitle}</h2>
             </div>
 
             <div className="service-switcher">
-              {siteContent.reserveServices.map((service) => (
+              {content.reserveServices.map((service) => (
                 <button
                   className={`service-switch-button${formData.reservationType === service.value ? ' is-selected' : ''}`}
                   key={service.value}
@@ -216,11 +215,11 @@ export default function ReservePage() {
             </div>
 
             <label>
-              სახელი და გვარი
+              {content.ui.reserve.fullName}
               <input
                 name="fullName"
                 onChange={handleInputChange}
-                placeholder="შეიყვანე სახელი და გვარი"
+                placeholder={content.ui.reserve.fullNamePlaceholder}
                 required
                 type="text"
                 value={formData.fullName}
@@ -229,7 +228,7 @@ export default function ReservePage() {
 
             <div className="form-row">
               <label>
-                ელფოსტა
+                {content.ui.reserve.email}
                 <input
                   name="email"
                   onChange={handleInputChange}
@@ -241,11 +240,11 @@ export default function ReservePage() {
               </label>
 
               <label>
-                ტელეფონის ნომერი
+                {content.ui.reserve.phone}
                 <input
                   name="phone"
                   onChange={handleInputChange}
-                  placeholder="577949425"
+                  placeholder={content.ui.reserve.phonePlaceholder}
                   required
                   type="tel"
                   value={formData.phone}
@@ -255,7 +254,7 @@ export default function ReservePage() {
 
             <div className="form-row">
               <label>
-                თარიღი
+                {content.ui.reserve.date}
                 <input
                   min={getToday()}
                   name="reservationDate"
@@ -268,25 +267,25 @@ export default function ReservePage() {
 
               {formData.reservationType === 'billiard' ? (
                 <CustomSelect
-                  label="მაგიდა"
+                  label={content.ui.reserve.table}
                   name="tableNumber"
                   onChange={handleSelectChange}
                   options={tableOptions}
-                  placeholder="აირჩიე მაგიდა"
+                  placeholder={content.ui.reserve.tablePlaceholder}
                   value={formData.tableNumber}
                 />
               ) : (
                 <div className="resource-fixed-card">
-                  <span className="field-label">რესურსი</span>
-                  <div className="resource-fixed-value">PlayStation</div>
+                  <span className="field-label">{content.ui.reserve.service}</span>
+                  <div className="resource-fixed-value">{content.ui.reserve.playstationValue}</div>
                 </div>
               )}
             </div>
 
             <div className="duration-block">
               <div className="time-picker-head">
-                <span className="field-label">ხანგრძლივობა</span>
-                <small>აირჩიე სწრაფად ან მიუთითე custom საათები</small>
+                <span className="field-label">{content.ui.reserve.duration}</span>
+                <small>{content.ui.reserve.durationHint}</small>
               </div>
 
               <div className="duration-grid">
@@ -297,13 +296,13 @@ export default function ReservePage() {
                     type="button"
                     onClick={() => handleDurationButton(hours)}
                   >
-                    {hours} სთ
+                    {hours} {content.ui.reserve.durationUnit}
                   </button>
                 ))}
               </div>
 
               <label>
-                Custom საათები
+                {content.ui.reserve.customHours}
                 <input
                   max="12"
                   min="1"
@@ -317,8 +316,8 @@ export default function ReservePage() {
 
             <div className="time-picker-block">
               <div className="time-picker-head">
-                <span className="field-label">დრო</span>
-                <small>{isLoadingTimes ? 'იტვირთება...' : 'უკვე დაკავებული ინტერვალები დაბლოკილია'}</small>
+                <span className="field-label">{content.ui.reserve.time}</span>
+                <small>{isLoadingTimes ? content.ui.reserve.loadingTimes : content.ui.reserve.bookedHint}</small>
               </div>
 
               <div className="time-grid">
@@ -342,11 +341,11 @@ export default function ReservePage() {
             </div>
 
             <label>
-              დამატებითი ინფორმაცია
+              {content.ui.reserve.notes}
               <textarea
                 name="notes"
                 onChange={handleInputChange}
-                placeholder="სურვილის შემთხვევაში"
+                placeholder={content.ui.reserve.notesPlaceholder}
                 rows="3"
                 value={formData.notes}
               />
@@ -357,7 +356,9 @@ export default function ReservePage() {
               disabled={isSubmitting || !formData.reservationTime}
               type="submit"
             >
-              {isSubmitting ? 'იგზავნება...' : `გაგზავნა • ${totalPrice} ლარი`}
+              {isSubmitting
+                ? content.ui.reserve.submitting
+                : `${content.ui.reserve.submit} - ${totalPrice} ${content.ui.common.currency}`}
             </button>
 
             <p className="form-message" role="status">

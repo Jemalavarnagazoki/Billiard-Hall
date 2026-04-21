@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { RouteLink } from '../components/RouteLink';
+import { useLocale } from '../context/LocaleContext';
 import {
   USER_EMAIL_STORAGE_KEY,
   USER_TOKEN_STORAGE_KEY,
@@ -21,15 +22,8 @@ function getStoredUserEmail() {
   return localStorage.getItem(USER_EMAIL_STORAGE_KEY) || '';
 }
 
-function formatReservationType(item) {
-  return item.reservationType === 'playstation' ? 'PlayStation' : `მაგიდა ${item.tableNumber}`;
-}
-
-function formatPaymentStatus(status) {
-  return status === 'paid' ? 'გადახდილია' : 'გადასახდელია';
-}
-
 export default function SignInPage() {
+  const { content, locale } = useLocale();
   const [formData, setFormData] = useState({
     ...initialForm,
     email: getStoredUserEmail()
@@ -40,6 +34,22 @@ export default function SignInPage() {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  function formatReservationType(item) {
+    if (item.reservationType === 'playstation') {
+      return 'PlayStation';
+    }
+
+    return `${content.ui.reserve.tableLabel} ${item.tableNumber}`;
+  }
+
+  function formatPaymentStatus(status) {
+    if (status === 'paid') {
+      return locale === 'ka' ? 'გადახდილია' : 'Paid';
+    }
+
+    return locale === 'ka' ? 'გადასახდელია' : 'Unpaid';
+  }
 
   useEffect(() => {
     if (!token) {
@@ -139,12 +149,12 @@ export default function SignInPage() {
           <div className="container signup-minimal-wrap">
             <form className="reservation-form signup-minimal-card" onSubmit={handleSubmit}>
               <div className="signup-minimal-head">
-                <p className="eyebrow">Sign In</p>
-                <h1>შესვლა</h1>
+                <p className="eyebrow">{content.ui.signIn.eyebrow}</p>
+                <h1>{content.ui.signIn.title}</h1>
               </div>
 
               <label>
-                ელფოსტა
+                {content.ui.signIn.email}
                 <input
                   name="email"
                   onChange={handleInputChange}
@@ -156,11 +166,11 @@ export default function SignInPage() {
               </label>
 
               <label>
-                პაროლი
+                {content.ui.signIn.password}
                 <input
                   name="password"
                   onChange={handleInputChange}
-                  placeholder="შეიყვანე პაროლი"
+                  placeholder={content.ui.signIn.passwordPlaceholder}
                   required
                   type="password"
                   value={formData.password}
@@ -168,11 +178,11 @@ export default function SignInPage() {
               </label>
 
               <button className="button button-primary button-submit button-large" disabled={isSubmitting} type="submit">
-                {isSubmitting ? 'იტვირთება...' : 'შესვლა'}
+                {isSubmitting ? content.ui.signIn.submitting : content.ui.signIn.submit}
               </button>
 
               <p className="auth-switch-copy">
-                ჯერ არ გაქვს ანგარიში? <Link to="/signup">რეგისტრაცია</Link>
+                {content.ui.signIn.noAccount} <RouteLink to="/signup">{content.ui.signIn.createAccount}</RouteLink>
               </p>
 
               <p className="form-message" role="status">
@@ -191,33 +201,33 @@ export default function SignInPage() {
         <div className="container admin-dashboard">
           <div className="admin-head">
             <div>
-              <p className="eyebrow">Account</p>
-              <h1>ჩემი ჯავშნები</h1>
+              <p className="eyebrow">{content.ui.signIn.accountEyebrow}</p>
+              <h1>{content.ui.signIn.accountTitle}</h1>
               <p className="section-copy">{user?.email}</p>
             </div>
 
             <button className="button button-secondary" type="button" onClick={handleLogout}>
-              გამოსვლა
+              {content.ui.signIn.logout}
             </button>
           </div>
 
           <div className="admin-stat-grid">
             <article className="info-strip-card">
-              <span>სახელი</span>
+              <span>{content.ui.signIn.statsName}</span>
               <strong>{user?.fullName || '-'}</strong>
             </article>
             <article className="info-strip-card">
-              <span>სულ ჯავშანი</span>
+              <span>{content.ui.signIn.statsTotal}</span>
               <strong>{reservations.length}</strong>
             </article>
             <article className="info-strip-card">
-              <span>ტელეფონი</span>
+              <span>{content.ui.signIn.statsPhone}</span>
               <strong>{user?.phone || '-'}</strong>
             </article>
           </div>
 
           <p className="form-message" role="status">
-            {isLoading ? 'ჯავშნები იტვირთება...' : message}
+            {isLoading ? content.ui.signIn.loadingReservations : message}
           </p>
 
           <div className="admin-reservation-list">
@@ -226,7 +236,7 @@ export default function SignInPage() {
                 <div className="admin-reservation-top">
                   <div>
                     <h2>{formatReservationType(reservation)}</h2>
-                    <p>{reservation.reservationDate} • {reservation.reservationTime}</p>
+                    <p>{reservation.reservationDate} - {reservation.reservationTime}</p>
                   </div>
 
                   <span className={`payment-badge${reservation.paymentStatus === 'paid' ? ' is-paid' : ''}`}>
@@ -236,26 +246,26 @@ export default function SignInPage() {
 
                 <div className="admin-detail-grid">
                   <div>
-                    <span>ხანგრძლივობა</span>
-                    <strong>{reservation.durationHours} სთ</strong>
+                    <span>{content.ui.signIn.duration}</span>
+                    <strong>{reservation.durationHours} {content.ui.reserve.durationUnit}</strong>
                   </div>
                   <div>
-                    <span>ჯამი</span>
-                    <strong>{reservation.totalPrice} ლარი</strong>
+                    <span>{content.ui.signIn.total}</span>
+                    <strong>{reservation.totalPrice} {content.ui.common.currency}</strong>
                   </div>
                   <div>
-                    <span>სტატუსი</span>
+                    <span>{content.ui.signIn.status}</span>
                     <strong>{formatPaymentStatus(reservation.paymentStatus)}</strong>
                   </div>
                   <div>
-                    <span>დაჯავშნდა</span>
+                    <span>{content.ui.signIn.createdAt}</span>
                     <strong>{reservation.createdAt.slice(0, 16).replace('T', ' ')}</strong>
                   </div>
                 </div>
 
                 <div className="admin-meta-row">
-                  <span>შენიშვნა: {reservation.notes || 'არ არის'}</span>
-                  <span>{reservation.paymentStatus === 'paid' ? 'დადასტურებულია' : 'ადგილზე გადასახდელია'}</span>
+                  <span>{content.ui.signIn.notePrefix} {reservation.notes || content.ui.signIn.noteEmpty}</span>
+                  <span>{reservation.paymentStatus === 'paid' ? content.ui.signIn.paymentConfirmed : content.ui.signIn.payOnSite}</span>
                 </div>
               </article>
             ))}
@@ -264,13 +274,13 @@ export default function SignInPage() {
               <article className="admin-reservation-card">
                 <div className="admin-reservation-top">
                   <div>
-                    <h2>ჯავშნები ჯერ არ არის</h2>
-                    <p>როდესაც დაჯავშნი, აქ გამოჩნდება.</p>
+                    <h2>{content.ui.signIn.noReservationsTitle}</h2>
+                    <p>{content.ui.signIn.noReservationsCopy}</p>
                   </div>
                 </div>
-                <Link className="button button-primary" to="/reserve">
-                  ჯავშანზე გადასვლა
-                </Link>
+                <RouteLink className="button button-primary" to="/reserve">
+                  {content.ui.signIn.goReserve}
+                </RouteLink>
               </article>
             ) : null}
           </div>

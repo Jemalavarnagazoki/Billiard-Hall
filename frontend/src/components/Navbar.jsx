@@ -1,48 +1,44 @@
-import { NavLink } from 'react-router-dom';
 import logoImage from '../assets/logo-new.png';
-import { siteContent } from '../data/siteContent';
-
-const navItems = [
-  { to: '/', label: 'მთავარი' },
-  { to: '/prices', label: 'ფასები' },
-  { to: '/menu', label: 'მენიუ' },
-  { to: '/reserve', label: 'ჯავშანი' },
-  { to: '/contact', label: 'კონტაქტი' },
-  { to: '/signin', label: 'შესვლა' },
-  { to: '/signup', label: 'რეგისტრაცია' }
-];
+import { useLocale } from '../context/LocaleContext';
+import LocaleSwitcher from './LocaleSwitcher';
+import { RouteNavLink, RouteLink } from './RouteLink';
 
 export default function Navbar() {
+  const { content } = useLocale();
+
   return (
     <>
       <div className="topbar">
         <div className="container topbar-row">
-          <span className="topbar-hours">ღია ყოველდღე {siteContent.hours}</span>
-          <span className="topbar-location">{siteContent.address}</span>
+          <div className="topbar-copy">
+            <span className="topbar-hours">{content.ui.topbar.openDaily} {content.hours}</span>
+            <span className="topbar-location">{content.address}</span>
+          </div>
+          <LocaleSwitcher />
         </div>
       </div>
 
       <header className="site-header">
         <div className="container nav-row">
-          <NavLink className="brand" to="/">
+          <RouteLink className="brand" to="/">
             <span className="brand-mark">
               <img src={logoImage} alt="Billiard Hall logo" />
             </span>
             <span className="brand-copy">
-              <strong>{siteContent.venueName}</strong>
-              <small>{siteContent.cityLabel}</small>
+              <strong>{content.venueName}</strong>
+              <small>{content.cityLabel}</small>
             </span>
-          </NavLink>
+          </RouteLink>
 
           <nav aria-label="Main navigation" className="nav-links">
-            {navItems.map((item) => (
-              <NavLink
+            {content.ui.navItems.map((item) => (
+              <RouteNavLink
                 className={({ isActive }) => `nav-link${isActive ? ' is-active' : ''}`}
                 key={item.to}
                 to={item.to}
               >
                 {item.label}
-              </NavLink>
+              </RouteNavLink>
             ))}
           </nav>
         </div>

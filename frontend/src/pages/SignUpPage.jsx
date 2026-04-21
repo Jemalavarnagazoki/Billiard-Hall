@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import CustomSelect from '../components/CustomSelect';
-import { siteContent } from '../data/siteContent';
+import { RouteLink } from '../components/RouteLink';
+import { useLocale } from '../context/LocaleContext';
 import { createSignup } from '../lib/api';
 
 const initialForm = {
@@ -13,6 +13,7 @@ const initialForm = {
 };
 
 export default function SignUpPage() {
+  const { content } = useLocale();
   const [formData, setFormData] = useState(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
@@ -33,7 +34,7 @@ export default function SignUpPage() {
 
     try {
       await createSignup(formData);
-      setMessage('ანგარიში შეიქმნა. ახლა შეგიძლია შეხვიდე.');
+      setMessage(content.ui.signUp.successMessage);
       setFormData(initialForm);
     } catch (error) {
       setMessage(error.message);
@@ -48,16 +49,16 @@ export default function SignUpPage() {
         <div className="container signup-minimal-wrap">
           <form className="reservation-form signup-minimal-card" onSubmit={handleSubmit}>
             <div className="signup-minimal-head">
-              <p className="eyebrow">Sign Up</p>
-              <h1>რეგისტრაცია</h1>
+              <p className="eyebrow">{content.ui.signUp.eyebrow}</p>
+              <h1>{content.ui.signUp.title}</h1>
             </div>
 
             <label>
-              სახელი და გვარი
+              {content.ui.signUp.fullName}
               <input
                 name="fullName"
                 onChange={handleInputChange}
-                placeholder="შეიყვანე სახელი და გვარი"
+                placeholder={content.ui.signUp.fullNamePlaceholder}
                 required
                 type="text"
                 value={formData.fullName}
@@ -65,7 +66,7 @@ export default function SignUpPage() {
             </label>
 
             <label>
-              ელფოსტა
+              {content.ui.signUp.email}
               <input
                 name="email"
                 onChange={handleInputChange}
@@ -77,11 +78,11 @@ export default function SignUpPage() {
             </label>
 
             <label>
-              ტელეფონის ნომერი
+              {content.ui.signUp.phone}
               <input
                 name="phone"
                 onChange={handleInputChange}
-                placeholder="577949425"
+                placeholder={content.ui.signUp.phonePlaceholder}
                 required
                 type="tel"
                 value={formData.phone}
@@ -89,11 +90,11 @@ export default function SignUpPage() {
             </label>
 
             <label>
-              პაროლი
+              {content.ui.signUp.password}
               <input
                 name="password"
                 onChange={handleInputChange}
-                placeholder="მინიმუმ 6 სიმბოლო"
+                placeholder={content.ui.signUp.passwordPlaceholder}
                 required
                 type="password"
                 value={formData.password}
@@ -101,20 +102,20 @@ export default function SignUpPage() {
             </label>
 
             <CustomSelect
-              label="სერვისი"
+              label={content.ui.signUp.service}
               name="plan"
               onChange={handleSelectChange}
-              options={siteContent.signupPlans}
-              placeholder="აირჩიე სერვისი"
+              options={content.signupPlans}
+              placeholder={content.ui.signUp.servicePlaceholder}
               value={formData.plan}
             />
 
             <button className="button button-primary button-submit button-large" disabled={isSubmitting} type="submit">
-              {isSubmitting ? 'იგზავნება...' : 'რეგისტრაციის გაგზავნა'}
+              {isSubmitting ? content.ui.signUp.submitting : content.ui.signUp.submit}
             </button>
 
             <p className="auth-switch-copy">
-              უკვე გაქვს ანგარიში? <Link to="/signin">შესვლა</Link>
+              {content.ui.signUp.hasAccount} <RouteLink to="/signin">{content.ui.signUp.signIn}</RouteLink>
             </p>
 
             <p className="form-message" role="status">

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { RouteLink } from './RouteLink';
 
 export default function PageHero({
   eyebrow,
@@ -19,14 +19,14 @@ export default function PageHero({
           <p className="page-hero-text">{description}</p>
           <div className="hero-actions">
             {primaryAction ? (
-              <Link className="button button-primary button-large" to={primaryAction.to}>
+              <RouteLink className="button button-primary button-large" to={primaryAction.to}>
                 {primaryAction.label}
-              </Link>
+              </RouteLink>
             ) : null}
             {secondaryAction ? (
-              <Link className="button button-secondary" to={secondaryAction.to}>
+              <RouteLink className="button button-secondary" to={secondaryAction.to}>
                 {secondaryAction.label}
-              </Link>
+              </RouteLink>
             ) : null}
           </div>
         </div>

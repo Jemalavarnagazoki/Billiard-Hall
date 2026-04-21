@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocale } from '../context/LocaleContext';
 import {
   ADMIN_EMAIL_STORAGE_KEY,
   ADMIN_TOKEN_STORAGE_KEY,
@@ -21,19 +22,8 @@ function getStoredEmail() {
   return localStorage.getItem(ADMIN_EMAIL_STORAGE_KEY) || initialLoginForm.email;
 }
 
-function formatReservationType(item) {
-  if (item.reservationType === 'playstation') {
-    return 'PlayStation';
-  }
-
-  return `მაგიდა ${item.tableNumber}`;
-}
-
-function formatPaymentStatus(status) {
-  return status === 'paid' ? 'გადახდილია' : 'გადასახდელია';
-}
-
 export default function AdminPage() {
+  const { content, locale } = useLocale();
   const [loginForm, setLoginForm] = useState({
     ...initialLoginForm,
     email: getStoredEmail()
@@ -45,6 +35,22 @@ export default function AdminPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState('');
+
+  function formatReservationType(item) {
+    if (item.reservationType === 'playstation') {
+      return 'PlayStation';
+    }
+
+    return `${content.ui.reserve.tableLabel} ${item.tableNumber}`;
+  }
+
+  function formatPaymentStatus(status) {
+    if (status === 'paid') {
+      return locale === 'ka' ? 'გადახდილია' : 'Paid';
+    }
+
+    return locale === 'ka' ? 'გადასახდელია' : 'Unpaid';
+  }
 
   useEffect(() => {
     if (!token) {
@@ -161,12 +167,12 @@ export default function AdminPage() {
           <div className="container signup-minimal-wrap">
             <form className="reservation-form signup-minimal-card" onSubmit={handleLoginSubmit}>
               <div className="signup-minimal-head">
-                <p className="eyebrow">Admin</p>
-                <h1>ადმინის შესვლა</h1>
+                <p className="eyebrow">{content.ui.admin.eyebrow}</p>
+                <h1>{content.ui.admin.title}</h1>
               </div>
 
               <label>
-                ელფოსტა
+                {content.ui.admin.email}
                 <input
                   name="email"
                   onChange={handleLoginInputChange}
@@ -177,11 +183,11 @@ export default function AdminPage() {
               </label>
 
               <label>
-                პაროლი
+                {content.ui.admin.password}
                 <input
                   name="password"
                   onChange={handleLoginInputChange}
-                  placeholder="შეიყვანე ადმინის პაროლი"
+                  placeholder={content.ui.admin.passwordPlaceholder}
                   required
                   type="password"
                   value={loginForm.password}
@@ -189,7 +195,7 @@ export default function AdminPage() {
               </label>
 
               <button className="button button-primary button-submit button-large" disabled={isLoggingIn} type="submit">
-                {isLoggingIn ? 'იტვირთება...' : 'შესვლა'}
+                {isLoggingIn ? content.ui.admin.submitting : content.ui.admin.submit}
               </button>
 
               <p className="form-message" role="status">
@@ -208,33 +214,33 @@ export default function AdminPage() {
         <div className="container admin-dashboard">
           <div className="admin-head">
             <div>
-              <p className="eyebrow">Admin Panel</p>
-              <h1>ჯავშნების მართვა</h1>
+              <p className="eyebrow">{content.ui.admin.panelEyebrow}</p>
+              <h1>{content.ui.admin.panelTitle}</h1>
               <p className="section-copy">{adminEmail}</p>
             </div>
 
             <button className="button button-secondary" type="button" onClick={handleLogout}>
-              გამოსვლა
+              {content.ui.admin.logout}
             </button>
           </div>
 
           <div className="admin-stat-grid">
             <article className="info-strip-card">
-              <span>სულ ჯავშანი</span>
+              <span>{content.ui.admin.totalReservations}</span>
               <strong>{reservations.length}</strong>
             </article>
             <article className="info-strip-card">
-              <span>გადახდილი</span>
+              <span>{content.ui.admin.paid}</span>
               <strong>{paidCount}</strong>
             </article>
             <article className="info-strip-card">
-              <span>გადასახდელი</span>
+              <span>{content.ui.admin.unpaid}</span>
               <strong>{unpaidCount}</strong>
             </article>
           </div>
 
           <p className="form-message" role="status">
-            {isLoading ? 'ჯავშნები იტვირთება...' : message}
+            {isLoading ? content.ui.admin.loadingReservations : message}
           </p>
 
           <div className="admin-reservation-list">
@@ -242,7 +248,7 @@ export default function AdminPage() {
               <article className="admin-reservation-card" key={reservation.id}>
                 <div className="admin-reservation-top">
                   <div>
-                    <h2>{reservation.fullName || 'სახელი მითითებული არ არის'}</h2>
+                    <h2>{reservation.fullName || content.ui.admin.missingName}</h2>
                     <p>{formatReservationType(reservation)}</p>
                   </div>
 
@@ -253,20 +259,20 @@ export default function AdminPage() {
 
                 <div className="admin-detail-grid">
                   <div>
-                    <span>თარიღი</span>
+                    <span>{content.ui.admin.date}</span>
                     <strong>{reservation.reservationDate}</strong>
                   </div>
                   <div>
-                    <span>დრო</span>
+                    <span>{content.ui.admin.time}</span>
                     <strong>{reservation.reservationTime}</strong>
                   </div>
                   <div>
-                    <span>ხანგრძლივობა</span>
-                    <strong>{reservation.durationHours} სთ</strong>
+                    <span>{content.ui.admin.duration}</span>
+                    <strong>{reservation.durationHours} {content.ui.reserve.durationUnit}</strong>
                   </div>
                   <div>
-                    <span>ჯამი</span>
-                    <strong>{reservation.totalPrice} ლარი</strong>
+                    <span>{content.ui.admin.total}</span>
+                    <strong>{reservation.totalPrice} {content.ui.common.currency}</strong>
                   </div>
                 </div>
 
@@ -276,8 +282,8 @@ export default function AdminPage() {
                 </div>
 
                 <div className="admin-meta-row">
-                  <span>შენიშვნა: {reservation.notes || 'არ არის'}</span>
-                  <span>დაჯავშნდა: {reservation.createdAt.slice(0, 16).replace('T', ' ')}</span>
+                  <span>{content.ui.admin.notePrefix} {reservation.notes || content.ui.admin.noteEmpty}</span>
+                  <span>{content.ui.admin.createdAtPrefix} {reservation.createdAt.slice(0, 16).replace('T', ' ')}</span>
                 </div>
 
                 <button
@@ -287,10 +293,10 @@ export default function AdminPage() {
                   onClick={() => handlePaymentToggle(reservation)}
                 >
                   {updatingId === reservation.id
-                    ? 'ინახება...'
+                    ? content.ui.admin.updating
                     : reservation.paymentStatus === 'paid'
-                      ? 'მონიშნე როგორც გადასახდელი'
-                      : 'მონიშნე როგორც გადახდილი'}
+                      ? content.ui.admin.markUnpaid
+                      : content.ui.admin.markPaid}
                 </button>
               </article>
             ))}

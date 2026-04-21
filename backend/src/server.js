@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dataDirectory = path.join(__dirname, '..', 'data');
+const frontendDistDirectory = path.join(__dirname, '..', '..', 'frontend', 'dist');
+const frontendIndexFile = path.join(frontendDistDirectory, 'index.html');
 const reservationDataFile = path.join(dataDirectory, 'reservations.json');
 const signupDataFile = path.join(dataDirectory, 'signups.json');
 const adminSessionDataFile = path.join(dataDirectory, 'admin-sessions.json');
@@ -792,6 +794,21 @@ app.post('/api/signups', async (request, response) => {
       email: record.email,
       phone: record.phone,
       plan: record.plan
+    }
+  });
+});
+
+app.use(express.static(frontendDistDirectory));
+
+app.get('*', (request, response, next) => {
+  if (request.path.startsWith('/api/')) {
+    next();
+    return;
+  }
+
+  response.sendFile(frontendIndexFile, (error) => {
+    if (error) {
+      next(error);
     }
   });
 });
