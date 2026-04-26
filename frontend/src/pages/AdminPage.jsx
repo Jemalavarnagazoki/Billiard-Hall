@@ -10,7 +10,7 @@ import {
 } from '../lib/api';
 
 const initialLoginForm = {
-  email: 'tamakurashvili056@gmail.com',
+  email: '',
   password: ''
 };
 
