@@ -1,8 +1,21 @@
-import app, { bootstrapStore } from '../../backend/src/app.js';
+let appModulePromise;
+let bootstrapPromise;
 
-const ready = bootstrapStore();
+async function loadAppModule() {
+  if (!appModulePromise) {
+    appModulePromise = import('../../backend/src/app.js');
+  }
 
-export default async function handler(request, response) {
-  await ready;
-  return app(request, response);
+  return appModulePromise;
 }
+
+module.exports = async function handler(request, response) {
+  const appModule = await loadAppModule();
+
+  if (!bootstrapPromise) {
+    bootstrapPromise = appModule.bootstrapStore();
+  }
+
+  await bootstrapPromise;
+  return appModule.default(request, response);
+};
