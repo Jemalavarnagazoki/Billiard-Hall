@@ -1,22 +1,14 @@
 import express from 'express';
 import cors from 'cors';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { MongoClient } from 'mongodb';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const dataDirectory = process.env.VERCEL
-  ? path.join(tmpdir(), 'billiard-hall-data')
-  : path.join(__dirname, '..', 'data');
 const frontendDistDirectory = path.join(__dirname, '..', '..', 'frontend', 'dist');
 const frontendIndexFile = path.join(frontendDistDirectory, 'index.html');
-const reservationDataFile = path.join(dataDirectory, 'reservations.json');
-const signupDataFile = path.join(dataDirectory, 'signups.json');
-const adminSessionDataFile = path.join(dataDirectory, 'admin-sessions.json');
-const userSessionDataFile = path.join(dataDirectory, 'user-sessions.json');
 const app = express();
 const totalTables = 13;
 const openingStartMinutes = 14 * 60;
@@ -34,6 +26,9 @@ const adminUsers = [
   }
 ];
 
+let mongoClientPromise;
+let databasePromise;
+
 app.use(
   cors({
     origin: true,
@@ -41,31 +36,6 @@ app.use(
   })
 );
 app.use(express.json());
-
-async function ensureStore() {
-  await mkdir(dataDirectory, { recursive: true });
-}
-
-async function ensureDataFile(dataFile) {
-  await ensureStore();
-
-  try {
-    await readFile(dataFile, 'utf8');
-  } catch {
-    await writeFile(dataFile, '[]');
-  }
-}
-
-async function readCollection(dataFile) {
-  await ensureDataFile(dataFile);
-  const raw = await readFile(dataFile, 'utf8');
-  return JSON.parse(raw);
-}
-
-async function writeCollection(dataFile, records) {
-  await ensureDataFile(dataFile);
-  await writeFile(dataFile, JSON.stringify(records, null, 2));
-}
 
 function sanitize(value) {
   return String(value || '').trim();
@@ -206,38 +176,100 @@ function normalizeSignupRecord(record) {
   };
 }
 
+function normalizeSessionRecord(record) {
+  return {
+    id: sanitize(record.id) || randomUUID(),
+    email: normalizeEmail(record.email),
+    token: sanitize(record.token),
+    createdAt: sanitize(record.createdAt) || new Date().toISOString()
+  };
+}
+
+function getMongoUri() {
+  const uri = sanitize(process.env.MONGODB_URI);
+
+  if (!uri) {
+    throw new Error('Missing MONGODB_URI environment variable.');
+  }
+
+  return uri;
+}
+
+function getMongoDbName() {
+  return sanitize(process.env.MONGODB_DB_NAME) || 'billiard_hall';
+}
+
+async function getMongoClient() {
+  if (!mongoClientPromise) {
+    const client = new MongoClient(getMongoUri());
+    mongoClientPromise = client.connect();
+  }
+
+  return mongoClientPromise;
+}
+
+async function getDatabase() {
+  if (!databasePromise) {
+    databasePromise = getMongoClient().then((client) => client.db(getMongoDbName()));
+  }
+
+  return databasePromise;
+}
+
+async function getCollection(name) {
+  const database = await getDatabase();
+  return database.collection(name);
+}
+
+async function readDocuments(name) {
+  const collection = await getCollection(name);
+  return collection.find({}, { projection: { _id: 0 } }).toArray();
+}
+
+async function replaceDocuments(name, records) {
+  const collection = await getCollection(name);
+
+  await collection.deleteMany({});
+
+  if (records.length > 0) {
+    await collection.insertMany(records);
+  }
+}
+
 async function getReservations() {
-  const records = await readCollection(reservationDataFile);
+  const records = await readDocuments('reservations');
   return records.map(normalizeReservationRecord);
 }
 
 async function saveReservations(reservations) {
-  await writeCollection(reservationDataFile, reservations.map(normalizeReservationRecord));
+  await replaceDocuments('reservations', reservations.map(normalizeReservationRecord));
 }
 
 async function getSignups() {
-  const records = await readCollection(signupDataFile);
+  const records = await readDocuments('signups');
   return records.map(normalizeSignupRecord);
 }
 
 async function saveSignups(signups) {
-  await writeCollection(signupDataFile, signups.map(normalizeSignupRecord));
+  await replaceDocuments('signups', signups.map(normalizeSignupRecord));
 }
 
 async function getAdminSessions() {
-  return readCollection(adminSessionDataFile);
+  const records = await readDocuments('adminSessions');
+  return records.map(normalizeSessionRecord);
 }
 
 async function saveAdminSessions(sessions) {
-  await writeCollection(adminSessionDataFile, sessions);
+  await replaceDocuments('adminSessions', sessions.map(normalizeSessionRecord));
 }
 
 async function getUserSessions() {
-  return readCollection(userSessionDataFile);
+  const records = await readDocuments('userSessions');
+  return records.map(normalizeSessionRecord);
 }
 
 async function saveUserSessions(sessions) {
-  await writeCollection(userSessionDataFile, sessions);
+  await replaceDocuments('userSessions', sessions.map(normalizeSessionRecord));
 }
 
 function safeCompare(left, right) {
@@ -480,14 +512,26 @@ function sortReservations(reservations) {
 }
 
 async function bootstrapStore() {
-  await ensureDataFile(reservationDataFile);
-  await ensureDataFile(signupDataFile);
-  await ensureDataFile(adminSessionDataFile);
-  await ensureDataFile(userSessionDataFile);
+  const database = await getDatabase();
+
+  await Promise.all([
+    database.collection('reservations').createIndex({ id: 1 }, { unique: true }),
+    database.collection('signups').createIndex({ id: 1 }, { unique: true }),
+    database.collection('signups').createIndex({ email: 1 }, { unique: true }),
+    database.collection('adminSessions').createIndex({ id: 1 }, { unique: true }),
+    database.collection('adminSessions').createIndex({ token: 1 }, { unique: true }),
+    database.collection('userSessions').createIndex({ id: 1 }, { unique: true }),
+    database.collection('userSessions').createIndex({ token: 1 }, { unique: true })
+  ]);
 }
 
-app.get('/api/health', (_request, response) => {
-  response.json({ ok: true });
+app.get('/api/health', async (_request, response) => {
+  const database = await getDatabase();
+
+  response.json({
+    ok: true,
+    database: database.databaseName
+  });
 });
 
 app.post('/api/auth/login', async (request, response) => {
