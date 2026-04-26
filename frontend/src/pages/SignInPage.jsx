@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { RouteLink } from '../components/RouteLink';
 import { useLocale } from '../context/LocaleContext';
 import {
+  ADMIN_EMAIL_STORAGE_KEY,
+  ADMIN_TOKEN_STORAGE_KEY,
+  createAdminSession,
   USER_EMAIL_STORAGE_KEY,
   USER_TOKEN_STORAGE_KEY,
   createUserSession,
@@ -24,6 +28,7 @@ function getStoredUserEmail() {
 
 export default function SignInPage() {
   const { content, locale } = useLocale();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     ...initialForm,
     email: getStoredUserEmail()
@@ -116,16 +121,29 @@ export default function SignInPage() {
     setMessage('');
 
     try {
-      const data = await createUserSession(formData);
-      localStorage.setItem(USER_TOKEN_STORAGE_KEY, data.token);
-      localStorage.setItem(USER_EMAIL_STORAGE_KEY, data.user.email);
-      setToken(data.token);
-      setUser(data.user);
-      setFormData((current) => ({
-        ...current,
-        email: data.user.email,
-        password: ''
-      }));
+      try {
+        const data = await createUserSession(formData);
+        localStorage.setItem(USER_TOKEN_STORAGE_KEY, data.token);
+        localStorage.setItem(USER_EMAIL_STORAGE_KEY, data.user.email);
+        setToken(data.token);
+        setUser(data.user);
+        setFormData((current) => ({
+          ...current,
+          email: data.user.email,
+          password: ''
+        }));
+        return;
+      } catch (userError) {
+        const adminData = await createAdminSession(formData);
+        localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, adminData.token);
+        localStorage.setItem(ADMIN_EMAIL_STORAGE_KEY, adminData.admin.email);
+        setFormData((current) => ({
+          ...current,
+          email: adminData.admin.email,
+          password: ''
+        }));
+        navigate('/admin');
+      }
     } catch (error) {
       setMessage(error.message);
     } finally {
