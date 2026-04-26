@@ -108,6 +108,7 @@ export default function ReservePage() {
     setFormData((current) => ({
       ...current,
       reservationType: service,
+      durationHours: '1',
       reservationTime: ''
     }));
   }
