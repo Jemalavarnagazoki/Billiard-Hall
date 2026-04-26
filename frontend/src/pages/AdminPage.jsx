@@ -6,6 +6,7 @@ import {
   createAdminSession,
   destroyAdminSession,
   fetchAdminReservations,
+  notifyAuthStateChanged,
   updateReservationPaymentStatus
 } from '../lib/api';
 
@@ -35,6 +36,15 @@ export default function AdminPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState('');
+  const reservedTablesLabel =
+    content.ui.admin.reservedTables ||
+    (locale === 'ka' ? '\u10d3\u10d0\u10d9\u10d0\u10d5\u10d4\u10d1\u10e3\u10da\u10d8 \u10db\u10d0\u10d2\u10d8\u10d3\u10d4\u10d1\u10d8' : 'Reserved Tables');
+  const billiardBookingsLabel =
+    content.ui.admin.billiardBookings ||
+    (locale === 'ka' ? '\u10d1\u10d8\u10da\u10d8\u10d0\u10e0\u10d3\u10d8' : 'Billiard Bookings');
+  const playstationBookingsLabel =
+    content.ui.admin.playstationBookings ||
+    (locale === 'ka' ? 'PlayStation' : 'PlayStation Bookings');
 
   function formatReservationType(item) {
     if (item.reservationType === 'playstation') {
@@ -94,7 +104,10 @@ export default function AdminPage() {
 
   function clearAdminSession() {
     localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(ADMIN_EMAIL_STORAGE_KEY);
+    notifyAuthStateChanged();
     setToken('');
+    setAdminEmail('');
     setReservations([]);
   }
 
@@ -112,6 +125,7 @@ export default function AdminPage() {
       const data = await createAdminSession(loginForm);
       localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, data.token);
       localStorage.setItem(ADMIN_EMAIL_STORAGE_KEY, data.admin.email);
+      notifyAuthStateChanged();
       setAdminEmail(data.admin.email);
       setToken(data.token);
       setLoginForm((current) => ({
@@ -159,6 +173,13 @@ export default function AdminPage() {
 
   const paidCount = reservations.filter((item) => item.paymentStatus === 'paid').length;
   const unpaidCount = reservations.length - paidCount;
+  const billiardCount = reservations.filter((item) => item.reservationType === 'billiard').length;
+  const playstationCount = reservations.filter((item) => item.reservationType === 'playstation').length;
+  const reservedTableCount = new Set(
+    reservations
+      .filter((item) => item.reservationType === 'billiard')
+      .map((item) => item.tableNumber)
+  ).size;
 
   if (!token) {
     return (
@@ -230,12 +251,24 @@ export default function AdminPage() {
               <strong>{reservations.length}</strong>
             </article>
             <article className="info-strip-card">
+              <span>{reservedTablesLabel}</span>
+              <strong>{reservedTableCount}</strong>
+            </article>
+            <article className="info-strip-card">
               <span>{content.ui.admin.paid}</span>
               <strong>{paidCount}</strong>
             </article>
             <article className="info-strip-card">
               <span>{content.ui.admin.unpaid}</span>
               <strong>{unpaidCount}</strong>
+            </article>
+            <article className="info-strip-card">
+              <span>{billiardBookingsLabel}</span>
+              <strong>{billiardCount}</strong>
+            </article>
+            <article className="info-strip-card">
+              <span>{playstationBookingsLabel}</span>
+              <strong>{playstationCount}</strong>
             </article>
           </div>
 

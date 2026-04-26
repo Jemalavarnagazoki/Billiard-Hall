@@ -6,6 +6,7 @@ import {
   ADMIN_EMAIL_STORAGE_KEY,
   ADMIN_TOKEN_STORAGE_KEY,
   createAdminSession,
+  notifyAuthStateChanged,
   USER_EMAIL_STORAGE_KEY,
   USER_TOKEN_STORAGE_KEY,
   createUserSession,
@@ -105,6 +106,7 @@ export default function SignInPage() {
       setFormData(initialForm);
     }
 
+    notifyAuthStateChanged();
     setToken('');
     setUser(null);
     setReservations([]);
@@ -125,6 +127,7 @@ export default function SignInPage() {
         const data = await createUserSession(formData);
         localStorage.setItem(USER_TOKEN_STORAGE_KEY, data.token);
         localStorage.setItem(USER_EMAIL_STORAGE_KEY, data.user.email);
+        notifyAuthStateChanged();
         setToken(data.token);
         setUser(data.user);
         setFormData((current) => ({
@@ -137,6 +140,7 @@ export default function SignInPage() {
         const adminData = await createAdminSession(formData);
         localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, adminData.token);
         localStorage.setItem(ADMIN_EMAIL_STORAGE_KEY, adminData.admin.email);
+        notifyAuthStateChanged();
         setFormData((current) => ({
           ...current,
           email: adminData.admin.email,

@@ -3,9 +3,16 @@ export const ADMIN_TOKEN_STORAGE_KEY = 'billiardHallAdminToken';
 export const ADMIN_EMAIL_STORAGE_KEY = 'billiardHallAdminEmail';
 export const USER_TOKEN_STORAGE_KEY = 'billiardHallUserToken';
 export const USER_EMAIL_STORAGE_KEY = 'billiardHallUserEmail';
+export const AUTH_STATE_EVENT = 'billiardHallAuthStateChange';
 
 function buildApiUrl(path) {
   return `${apiBaseUrl}${path}`;
+}
+
+export function notifyAuthStateChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AUTH_STATE_EVENT));
+  }
 }
 
 function buildAdminHeaders(token) {
